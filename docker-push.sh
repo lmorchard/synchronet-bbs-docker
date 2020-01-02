@@ -1,5 +1,5 @@
 #!/bin/sh
-HUB_REPOSITORY=rfocosi/synchronet-bbs
+HUB_REPOSITORY=lmorchard/synchronet-bbs
 
 docker build -f Dockerfile-minimal -t $HUB_REPOSITORY:minimal .
 [ "$?" != "0" ] && exit 1

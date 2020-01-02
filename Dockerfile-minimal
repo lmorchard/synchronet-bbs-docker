@@ -3,7 +3,7 @@ FROM debian:bullseye
 RUN apt update && \
     apt install -y build-essential pkg-config autoconf \
                    libnspr4-dev libssl-dev avr-libc liblhasa-dev \
-                   libxbase64-dev libcap2-dev lib32ncurses-dev zip python2
+                   libxbase64-dev libcap2-dev libncurses5-dev zip python2
 
 ENV SBBS_STATIC_DIR=/sbbs-static/
 ENV SBBSUSER=sbbs
@@ -23,6 +23,8 @@ COPY bin/* /usr/local/sbin/
 RUN chmod +x /usr/local/sbin/*
 
 RUN make -C /sbbs-static/ minimal install
+
+RUN apt install -y tofrodos qemu-system-x86 socat
 
 RUN rm -rf $SBBS_STATIC_DIR/src/ $SBBS_STATIC_DIR/3rdp/ $SBBS_STATIC_DIR/Makefile && \
     apt purge -y build-essential gcc dpkg-dev g++ libc-dev make \
