@@ -1,0 +1,93 @@
+services:
+  sbbs:
+    container_name: sbbs
+    image: lmorchard/synchronet
+
+    deploy:
+      restart_policy:
+        condition: any
+    entrypoint: ./docker-scripts/start-with-doorparty.sh
+    volumes:
+      - ./data:/data
+      - ./doors:/doors
+      - ./doorparty:/doorparty
+    networks:
+      - sbbs
+    ports:
+      - 6580:6580 #http
+      - 6543:6543 #https
+      - 6510:6510 #ws-term
+      - 6511:6511 #wss-term
+      - 6521:6521 #ftp
+      - 6522:6522 #ssh
+      - 6523:6523 #telnet
+      - 6513:6513 #rlogin
+      - 6564:6564 #petscii 40-column
+      - 6528:6528 #petscii 128-column
+      #- "25:25" #smtp-mail
+      #- 587:587 #smtp-submit
+      #- 465:465 #smtp-submit+tls
+      #- 110:110 #pop3
+      #- 995:995 #pop3+tls
+      #- 119:119 #nntp
+      #- 563:563 #nntps
+      #- "18:18" #message send prot
+      #- "11:11" #active user svc
+      #- "17:17" #qotd
+      - 6579:6579 #finger
+      - 6567:6567 #irc
+      # - 5500:5500 #hotline
+      # - 5501:5501 #hotline-trans
+      # - 24554:24554 #binkp
+      # - 24553:24553 #binkps
+      # - 143:143 #imap
+      # - 993:993 #imap+tls
+  # sbbs_irc:
+  #   container_name: sbbs_irc
+  #   build:
+  #     context: .
+  #   deploy:
+  #     restart_policy:
+  #       condition: any
+  #       delay: 3s
+  #   volumes:
+  #     - $PWD:/sbbs-data
+  #   command: sbbs-run jsexec /sbbs/exec/ircd.js
+  #   ports:
+  #     - 6667:6667
+  # sbbs_ecweb:
+  #   container_name: sbbs_ecweb
+  #   build:
+  #     context: .
+  #   deploy:
+  #     restart_policy:
+  #       condition: any
+  #       delay: 3s
+  #   volumes:
+  #     - $PWD:/sbbs-data
+  #     - $PWD/web-ecweb4:/sbbs-data/web
+  #     - $PWD/web-ecweb4:/sbbs/web
+  #   command: /sbbs/scripts/sbbs t- f- m- s- $PWD/ctrl/sbbs.web-ecweb4.ini
+  #   ports:
+  #     - 51080:80
+  #     - 51443:443
+  # sbbs_rmweb:
+  #   container_name: sbbs_rmweb
+  #   build:
+  #     context: .
+  #   deploy:
+  #     restart_policy:
+  #       condition: any
+  #       delay: 3s
+  #   volumes:
+  #     - $PWD:/sbbs-data
+  #     - $PWD/web-runemaster:/sbbs-data/web
+  #     - $PWD/web-runemaster:/sbbs/web
+  #   command: /sbbs/scripts/sbbs t- f- m- s- $PWD/ctrl/sbbs.web-runemaster.ini
+  #   ports:
+  #     - 52080:80
+  #     - 52443:443
+
+networks:
+  sbbs:
+    name: sbbs

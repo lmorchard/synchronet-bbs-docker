@@ -36,6 +36,7 @@ RUN apt-get update \
     && apt-get install -yqq \
     build-essential libarchive-dev libffi-dev git \
     libnspr4-dev libncurses5-dev python2 pkgconf \
+    mosquitto mosquitto-clients \
     && apt-get -y autoremove \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
