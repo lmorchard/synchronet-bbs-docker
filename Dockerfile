@@ -17,9 +17,6 @@ RUN apt-get update \
     libnspr4 jq telnet libffi7 \
     rsh-redone-client locales locales-all \
     mtools dosfstools dos2unix ser2net socat tmux \
-    libasound2 libsdl1.2debian \
-    libslang2 libsndfile1 \
-    libxxf86vm1 xfonts-utils \
     && apt-get -y autoremove \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -31,7 +28,7 @@ RUN addgroup --gid 1000 sbbs \
     && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 ################################################################################
-# Build Stage
+# Synchronet Build Stage
 FROM base AS build
 
 # Build dependencies
@@ -70,18 +67,35 @@ USER root
 RUN /usr/bin/tic install/terminfo \
     && cat install/termcap >> /etc/termcap
 
-# HACK: Install dosemu from .deb URL and allow for initial failure of install before dependencies
-RUN mkdir -p /media/CDROM
+RUN apt-get update
+
+# Build kermit for file transfers
+# ARG KERMIT_SRC_URL=https://www.kermitproject.org/ftp/kermit/pretest/x-20240206.tar.gz
+RUN apt-get install -yqq build-essential
+# RUN curl $KERMIT_SRC_URL > /tmp/kermit.tar.gz
+COPY ./deps/kermit.tar.gz /tmp
+RUN mkdir kermit && \
+    cd kermit && \
+    tar -zxf /tmp/kermit.tar.gz && \
+    make linux install && \
+    cd .. && \
+    rm -rf kermit
+
+# HACK: Install an old known-good version of dosemu to run door games
 #ARG DOSEMU_DEB_URL=http://ftp.us.debian.org/debian/pool/contrib/d/dosemu/dosemu_1.4.0.7+20130105+b028d3f-2+b1_amd64.deb 
 #ARG DOSEMU_DEB_URL=http://archive.debian.org/debian-archive/debian/pool/contrib/d/dosemu/dosemu_1.4.0.7+20130105+b028d3f-2+b1_amd64.deb
-#RUN wget -nc $DOSEMU_DEB_URL
 ARG DOSEMU_DEB=dosemu_1.4.0.7+20130105+b028d3f-2+b1_amd64.deb
+RUN apt-get install -yqq libasound2 libsdl1.2debian libslang2 libsndfile1 libxxf86vm1 xfonts-utils
+RUN mkdir -p /media/CDROM
+#RUN wget -nc $DOSEMU_DEB_URL
 COPY ./deps/$DOSEMU_DEB /tmp
-RUN /usr/bin/dpkg \
-    --ignore-depends=libasound2 --ignore-depends=libsdl1.2debian \
-    --ignore-depends=libslang2 --ignore-depends=libsndfile1 \
-    --ignore-depends=libxxf86vm1 --ignore-depends=xfonts-utils \
-    -i /tmp/$DOSEMU_DEB
+RUN /usr/bin/dpkg -i /tmp/$DOSEMU_DEB
+
+# Tidy up after all that installing
+RUN apt-get -y --purge autoremove build-essential \
+    && apt-get -y autoremove \
+    && apt-get -y clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # User created in base container
 USER sbbs
