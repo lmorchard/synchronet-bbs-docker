@@ -2,3 +2,7 @@ sbbs_*.tgz
 kermit.tar.gz
 *.deb
 tmp/
+data/
+doors/
+doorparty/
+

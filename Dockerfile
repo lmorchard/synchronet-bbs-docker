@@ -17,6 +17,9 @@ RUN apt-get update \
     libnspr4 jq telnet libffi7 \
     rsh-redone-client locales locales-all \
     mtools dosfstools dos2unix ser2net socat tmux \
+    libasound2 libsdl1.2debian \
+    libslang2 libsndfile1 \
+    libxxf86vm1 xfonts-utils \
     && apt-get -y autoremove \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -45,7 +48,7 @@ WORKDIR /sbbs
 # https://wiki.synchro.net/install:nix#tarball_build_method
 # RUN wget ftp://vert.synchro.net/Synchronet/sbbs_src.tgz && \
 #     wget ftp://vert.synchro.net/Synchronet/sbbs_run.tgz
-COPY ./sbbs_run.tgz ./sbbs_src.tgz /tmp
+COPY ./deps/sbbs_run.tgz ./deps/sbbs_src.tgz /tmp
 RUN tar -xzf /tmp/sbbs_src.tgz --owner=sbbs --group=sbbs && \
     tar -xzf /tmp/sbbs_run.tgz --owner=sbbs --group=sbbs
 RUN cd src/sbbs3 && \
@@ -61,32 +64,32 @@ COPY --from=build --chown=sbbs:sbbs /sbbs /sbbs
 
 WORKDIR /sbbs
 
-# Ensure we have termcap installed - I forget why but something breaks without this
 USER root
+
+# Ensure we have termcap installed - I forget why but something breaks without this
 RUN /usr/bin/tic install/terminfo \
     && cat install/termcap >> /etc/termcap
 
 # HACK: Install dosemu from .deb URL and allow for initial failure of install before dependencies
+RUN mkdir -p /media/CDROM
 #ARG DOSEMU_DEB_URL=http://ftp.us.debian.org/debian/pool/contrib/d/dosemu/dosemu_1.4.0.7+20130105+b028d3f-2+b1_amd64.deb 
 #ARG DOSEMU_DEB_URL=http://archive.debian.org/debian-archive/debian/pool/contrib/d/dosemu/dosemu_1.4.0.7+20130105+b028d3f-2+b1_amd64.deb
-#ARG DOSEMU_DEB=dosemu_1.4.0.7+20130105+b028d3f-2+b1_amd64.deb
-#RUN wget -nc $DOSEMU_DEB_URL \
-#	&& /usr/bin/dpkg -i $DOSEMU_DEB \
-#	|| /usr/bin/apt-get -f install -y \
-#	&& /usr/bin/dpkg -i $DOSEMU_DEB \
-#	&& rm $DOSEMU_DEB
-#RUN mkdir -p /media/CDROM
+#RUN wget -nc $DOSEMU_DEB_URL
+ARG DOSEMU_DEB=dosemu_1.4.0.7+20130105+b028d3f-2+b1_amd64.deb
+COPY ./deps/$DOSEMU_DEB /tmp
+RUN /usr/bin/dpkg \
+    --ignore-depends=libasound2 --ignore-depends=libsdl1.2debian \
+    --ignore-depends=libslang2 --ignore-depends=libsndfile1 \
+    --ignore-depends=libxxf86vm1 --ignore-depends=xfonts-utils \
+    -i /tmp/$DOSEMU_DEB
 
 # User created in base container
 USER sbbs
 
-# Output Version(s)
-#RUN sudo chown -R sbbs:sbbs /sbbs \
-#    && sudo chmod -R a+rwX /sbbs \
-#    && echo "\n" && cat /sbbs/exec/version.txt && echo "\n"
+COPY --chown=sbbs:sbbs ./docker-scripts/ /sbbs/docker-scripts/
 
 # Start SBBS by Default
-#CMD ["/sbbs/scripts/sbbs"]
+CMD ["./docker-scripts/start.sh"]
 
 # Declare expected volume mounts
 VOLUME [ "/sbbs-data" ]
