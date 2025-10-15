@@ -11,6 +11,7 @@ set -e  # Exit on error
 
 # Define directories to ignore (add more as needed)
 IGNORE_DIRS=(
+    "3rdp"
     "exec"
     "install"
     "src"
@@ -77,33 +78,23 @@ for sbbs_dir in /sbbs/*/; do
     
     # Skip ignored directories
     if should_ignore "$dir_name"; then
-        log "  → Ignoring directory: $dir_name"
         continue
     fi
-    
+
     # Skip if it's already a symlink (from a previous run)
     if [ -L "$sbbs_dir" ]; then
         continue
     fi
-    
+
     data_path="/data/$dir_name"
-    
+
     # Check if this directory exists in /data
     if [ ! -e "$data_path" ]; then
-        log "Initializing: $dir_name"
-        log "  → Copying from $sbbs_dir to $data_path"
-        
-        # Copy the directory to /data
-        cp -a "$sbbs_dir" "$data_path"
-        
-        if [ -d "$data_path" ]; then
-            log "  → Successfully copied!"
-        else
-            log_error "  → Failed to copy directory!"
+        log "Initializing $dir_name → $data_path"
+        cp -a "$sbbs_dir" "$data_path" || {
+            log_error "Failed to copy $dir_name"
             exit 1
-        fi
-    else
-        log "  → $dir_name already exists in /data, skipping"
+        }
     fi
 done
 
@@ -119,60 +110,40 @@ for data_dir in /data/*/; do
     
     # Skip ignored directories
     if should_ignore "$dir_name"; then
-        log "  → Ignoring directory: $dir_name"
         continue
     fi
-    
+
     sbbs_path="/sbbs/$dir_name"
     backup_path="/data/backup/$dir_name"
-    
-    log "Processing: $dir_name"
-    
-    # Check if the path already exists in /sbbs
+
+    # Check if it's already a correct symlink
+    if [ -L "$sbbs_path" ] && [ "$(readlink -f "$sbbs_path")" = "$(readlink -f "$data_dir")" ]; then
+        continue
+    fi
+
+    # Handle existing directory/file at sbbs_path
     if [ -e "$sbbs_path" ]; then
-        # Check if it's already a symlink pointing to the correct location
-        if [ -L "$sbbs_path" ] && [ "$(readlink -f "$sbbs_path")" = "$(readlink -f "$data_dir")" ]; then
-            log "  → Symlink already exists and is correct, skipping"
-            continue
-        fi
-        
-	# If backup already exists, append timestamp
-        # if [ -e "$backup_path" ]; then
-        #     timestamp=$(date +%Y%m%d_%H%M%S)
-        #     backup_path="${backup_path}_${timestamp}"
-        #     log_warn "  → Backup already exists, using: $backup_path"
-        # fi
-        
-        # It exists but isn't a correct symlink, so we need to back it up
-        log "  → Found existing item at $sbbs_path"
-        
         if [ -e "$backup_path" ]; then
-            log "  → Backup already exists, deleting $sbbs_path"
-	    rm -rf "$sbbs_path"
+            log "Replacing $dir_name (backup exists)"
+            rm -rf "$sbbs_path"
         else
-            # Move to backup
-            log "  → Moving to backup: $backup_path"
+            log "Backing up $dir_name → backup/$dir_name"
             mv "$sbbs_path" "$backup_path"
-	fi
+        fi
     fi
-    
+
     # Create the symlink
-    log "  → Creating symlink: $sbbs_path -> $data_dir"
-    ln -s "$data_dir" "$sbbs_path"
-    
-    # Verify the symlink was created successfully
-    if [ -L "$sbbs_path" ]; then
-        log "  → Success!"
-    else
-        log_error "  → Failed to create symlink!"
+    log "Linking $dir_name → /data/$dir_name"
+    ln -s "$data_dir" "$sbbs_path" || {
+        log_error "Failed to create symlink for $dir_name"
         exit 1
-    fi
+    }
 done
 
 log "Symlink setup completed successfully!"
 
-# Optional: List all created symlinks for verification
-log "Current symlinks in /sbbs:"
-find /sbbs -type l -ls | while read line; do
-    echo "  $line"
-done
+# List created symlinks (set VERBOSE=1 to see full details)
+if [ "${VERBOSE:-0}" = "1" ]; then
+    log "Current symlinks in /sbbs:"
+    find /sbbs -type l -ls
+fi

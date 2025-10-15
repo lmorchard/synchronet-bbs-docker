@@ -1,4 +1,5 @@
 #!/bin/bash
+mkdir -p deps
 cd deps
 wget -nc ftp://vert.synchro.net/Synchronet/sbbs_src.tgz
 wget -nc ftp://vert.synchro.net/Synchronet/sbbs_run.tgz
