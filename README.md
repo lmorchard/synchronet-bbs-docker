@@ -80,3 +80,43 @@ On startup, the container automatically runs `link-sbbs-data.sh` which:
 This ensures all configuration, user data, and customizations persist across container rebuilds. The script ignores build-only directories like `exec`, `install`, and `src`.
 
 Seems to be working for me, but it's a bit of a blunt instrument and it only operates on the first level of directories in `/sbbs/`
+
+## Automated Builds
+
+This repository uses GitHub Actions to automatically build and push Docker images to Docker Hub.
+
+### Build Triggers
+
+**"Nightly" builds (main branch):**
+- Triggered on push to `main` branch or manual trigger
+- Downloads latest `sbbs_src.tgz` and `sbbs_run.tgz` (development versions)
+- Tagged as: `latest`, `main`, `sbbs-<hash>`
+
+Note: This isn't *really* nightly, since I haven't bothered to hook this up to a schedule.
+I might? But mostly I just want this as a way to do a quick archived build of the latest.
+
+**Stable releases (version tags):**
+- Triggered by git tags matching `v*` (e.g., `v320d`)
+- Downloads versioned tarballs (e.g., `ssrc320d.tgz`, `srun320d.tgz`)
+- Tagged as: `v320d`, `sbbs-<hash>`
+
+### Smart Rebuild Detection
+
+The workflow computes a SHA256 hash of the Synchronet source tarballs. If an image with that hash already exists on Docker Hub, it skips the rebuild and just updates tags. This saves ~5-10 minutes when Synchronet hasn't changed.
+
+### Available Tags
+
+- `lmorchard/synchronet:latest` - Most recent build from main branch
+- `lmorchard/synchronet:v320d` - Specific stable release (e.g., v3.20d)
+- `lmorchard/synchronet:sbbs-<hash>` - Exact Synchronet version by content hash
+- `lmorchard/synchronet:main` - Current main branch
+
+### Setting Up for Your Fork
+
+To use automated builds in your fork:
+
+1. Go to GitHub repo → Settings → Secrets and variables → Actions
+2. Add two repository secrets:
+   - `DOCKERHUB_USERNAME`: Your Docker Hub username
+   - `DOCKERHUB_TOKEN`: Docker Hub access token (create at hub.docker.com → Account Settings → Security)
+3. Update image name in `.github/workflows/docker-build-push.yml` (change `lmorchard/synchronet` to your image name)
